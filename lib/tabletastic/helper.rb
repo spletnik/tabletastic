@@ -6,7 +6,7 @@ module Tabletastic
       klass = default_class_for(collection)
       options = args.extract_options!
       initialize_html_options(options, klass)
-      TableBuilder.new(collection, klass, self, params, options, &block)
+      TableBuilder.new(collection, klass, self, params, options, &block).build
     end
 
     private

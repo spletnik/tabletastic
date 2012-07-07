@@ -11,21 +11,24 @@ module Tabletastic
       @collection, @klass, @template, @params, @options, @block =
        collection, klass, template, params, options, block
       @table_fields = []
+    end
 
-      inner_table = @template.capture { block.call(self) }
-      outer_table = content_tag(:table, inner_table, options[:html])
+    def build
+      inner_table = @template.capture { @block.call(self) }
+      outer_table = @template.content_tag(:table, inner_table, @options[:html])
 
       if !@mass_actions.blank?
-        action = polymorphic_path([:mass_action, @action_prefix,
-                                   collection.klass.name.
-                                    underscore.pluralize.to_sym])
-        mass_actions_submit = content_tag(:div,
-          select_tag(:mass_action, options_for_select([""] + @mass_actions)) +
-           submit_tag("Submit"),
+        action = @template.
+         polymorphic_path([:mass_action, @action_prefix,
+                           @collection.klass.name.underscore.pluralize.to_sym])
+        mass_actions_submit = @template.content_tag(:div,
+          @template.select_tag(:mass_action, @template.
+                               options_for_select([""] + @mass_actions)) +
+           @template.submit_tag("Submit"),
           :class => "mass_actions_submit"
         )
-        content_tag(:form, mass_actions_submit + outer_table,
-                    :action => path, :method => :post)
+        @template.content_tag(:form, mass_actions_submit + outer_table,
+                              :action => action, :method => :post)
       else
         outer_table
       end
