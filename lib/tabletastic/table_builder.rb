@@ -7,9 +7,28 @@ module Tabletastic
 
     attr_reader   :collection, :klass, :table_fields
 
-    def initialize(collection, klass, template, params)
-      @collection, @klass, @template, @params = collection, klass, template, params
+    def initialize(collection, klass, template, params, options, &block)
+      @collection, @klass, @template, @params, @options, @block =
+       collection, klass, template, params, options, block
       @table_fields = []
+
+      inner_table = @template.capture { block.call(self) }
+      outer_table = capture { content_tag(:table, inner_table, options[:html]) }
+
+      if !@mass_actions.blank?
+        action = polymorphic_path([:mass_action, @action_prefix,
+                                   collection.klass.name.
+                                    underscore.pluralize.to_sym])
+        mass_actions_submit = content_tag(:div,
+          select_tag(:mass_action, options_for_select([""] + @mass_actions)) +
+           submit_tag("Submit"),
+          :class => "mass_actions_submit"
+        )
+        content_tag(:form, mass_actions_submit + outer_table,
+                    :action => path, :method => :post)
+      else
+        outer_table
+      end
     end
 
     # builds up the fields that the table will include,
