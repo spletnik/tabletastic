@@ -6,10 +6,25 @@ module Tabletastic
       klass = default_class_for(collection)
       options = args.extract_options!
       initialize_html_options(options, klass)
-      result = capture do
-        block.call(TableBuilder.new(collection, klass, self, params))
+      builder = TableBuilder.new(collection, klass, self, params)
+      inner_table = capture { block.call(builder) }
+      outer_table = capture { content_tag(:table, inner_table, options[:html]) }
+      action_prefix = builder.instance_variable_get(:@action_prefix)
+      mass_actions = builder.instance_variable_get(:@mass_actions)
+      if !mass_actions.blank?
+        path = polymorphic_path([:mass_action, action_prefix,
+                                 collection.klass.name.underscore.
+                                  pluralize.to_sym])
+        mass_actions_submit = content_tag(:div,
+          select_tag(:mass_action, options_for_select([""] + mass_actions)) +
+           submit_tag("Submit"),
+          :class => "mass_actions_submit"
+        )
+        content_tag(:form, mass_actions_submit + outer_table,
+                    :action => path, :method => :post)
+      else
+        outer_table
       end
-      content_tag(:table, result, options[:html])
     end
 
     private

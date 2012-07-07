@@ -36,7 +36,10 @@ module Tabletastic
         if ["ASC", "DESC"].include?(@params[:sort])
           @current_sortable[1] = @params[:sort]
         end
+        @action_prefix = options[:action_prefix]
+        @mass_actions = options[:mass_actions]
       end
+      mass_action_cells(@mass_actions)
       action_cells(options[:actions], options[:action_prefix])
       ["\n", head, "\n", body, "\n"].join("").html_safe
     end
@@ -65,8 +68,9 @@ module Tabletastic
     def cell(*args, &proc)
       options = args.extract_options!
       options.merge!(:klass => klass)
+      method = options.delete(:method) || :push
       args << options
-      @table_fields << TableField.new(*args, &proc)
+      @table_fields.send(method, TableField.new(*args, &proc))
       # Since this will likely be called with <%= %> (aka 'concat'), explicitly return an
       # empty string; this suppresses unwanted output
       return ""
@@ -90,7 +94,7 @@ module Tabletastic
                 opts[:class] = ((opts[:class] || "").split << "sorted").join(" ")
               end
               txt = field.heading
-              result + content_tag(:th, content_tag(:a, txt, {href: qs}), opts)
+              result + content_tag(:th, content_tag(:a, txt, {:href => qs}), opts)
             else
               result + content_tag(:th, field.heading, field.heading_html)
             end
@@ -102,7 +106,7 @@ module Tabletastic
     def body
       content_tag(:tbody) do
         @collection.inject("\n") do |rows, record|
-          rowclass = @template.cycle("odd","even")
+          rowclass = @template.cycle("odd", "even")
           rows += @template.content_tag_for(:tr, record, :class => rowclass) do
             cells_for_row(record)
           end + "\n"
@@ -120,6 +124,14 @@ module Tabletastic
       end.html_safe
     end
 
+    def mass_action_cells(mass_actions)
+      return if mass_actions.blank?
+      mass_actions = [mass_actions] if !mass_actions.respond_to?(:each)
+      mass_actions.each do |mass_action|
+        mass_action_check_box(mass_action.to_sym)
+      end
+    end
+
     # Used internally to build up cells for common CRUD actions
     def action_cells(actions, prefix = nil)
       return if actions.blank?
@@ -128,6 +140,14 @@ module Tabletastic
       actions.each do |action|
         action_link(action.to_sym, prefix)
       end
+    end
+
+    def mass_action_check_box(mass_action)
+      html_class = "mass_actions #{mass_action}_check_box"
+      block = lambda do |resource|
+        @template.check_box_tag(:"mass_ids[]", resource.id)
+      end
+      self.cell(mass_action, :method => :unshift, :heading => "", :cell_html => {:class => html_class}, &block)
     end
 
     # Dynamically builds links for the action
