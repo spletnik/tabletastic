@@ -13,7 +13,7 @@ module Tabletastic
       @table_fields = []
 
       inner_table = @template.capture { block.call(self) }
-      outer_table = @template.capture { content_tag(:table, inner_table, options[:html]) }
+      outer_table = content_tag(:table, inner_table, options[:html])
 
       if !@mass_actions.blank?
         action = polymorphic_path([:mass_action, @action_prefix,
