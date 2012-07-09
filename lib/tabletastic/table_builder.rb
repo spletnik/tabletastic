@@ -59,9 +59,9 @@ module Tabletastic
           @current_sortable[1] = @params[:sort]
         end
         @action_prefix = options[:action_prefix]
-        @mass_actions = options[:mass_actions]
+        @mass_actions = options[:mass_actions] || []
       end
-      mass_action_cells(@mass_actions)
+      mass_actions_check_box if !@mass_actions.blank?
       action_cells(options[:actions], options[:action_prefix])
       ["\n", head, "\n", body, "\n"].join("").html_safe
     end
@@ -146,14 +146,6 @@ module Tabletastic
       end.html_safe
     end
 
-    def mass_action_cells(mass_actions)
-      return if mass_actions.blank?
-      mass_actions = [mass_actions] if !mass_actions.respond_to?(:each)
-      mass_actions.each do |mass_action|
-        mass_action_check_box(mass_action.to_sym)
-      end
-    end
-
     # Used internally to build up cells for common CRUD actions
     def action_cells(actions, prefix = nil)
       return if actions.blank?
@@ -164,12 +156,12 @@ module Tabletastic
       end
     end
 
-    def mass_action_check_box(mass_action)
-      html_class = "mass_actions #{mass_action}_check_box"
+    def mass_actions_check_box
+      html_class = "mass_actions_check_box"
       block = lambda do |resource|
         @template.check_box_tag(:"mass_ids[]", resource.id)
       end
-      self.cell(mass_action, :method => :unshift, :heading => "", :cell_html => {:class => html_class}, &block)
+      self.cell(:id, :method => :unshift, :heading => "", :cell_html => {:class => html_class}, &block)
     end
 
     # Dynamically builds links for the action
