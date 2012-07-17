@@ -129,7 +129,8 @@ module Tabletastic
       content_tag(:tbody) do
         @collection.inject("\n") do |rows, record|
           rowclass = @template.cycle("odd", "even")
-          rows += @template.content_tag_for(:tr, record, :class => rowclass) do
+          rows += @template.content_tag_for(:tr, record, :class => rowclass,
+                                            "data-record-id" => record.id) do
             cells_for_row(record)
           end + "\n"
         end.html_safe
