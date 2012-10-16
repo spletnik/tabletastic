@@ -62,7 +62,7 @@ module Tabletastic
         @mass_actions = options[:mass_actions] || []
       end
       mass_actions_check_box if !@mass_actions.blank?
-      action_cells(options[:actions], options[:action_prefix])
+      actions_cell(options[:actions], options[:action_prefix])
       ["\n", head, "\n", body, "\n"].join("").html_safe
     end
 
@@ -148,12 +148,15 @@ module Tabletastic
     end
 
     # Used internally to build up cells for common CRUD actions
-    def action_cells(actions, prefix = nil)
+    def actions_cell(actions, prefix = nil)
       return if actions.blank?
       actions = [actions] if !actions.respond_to?(:each)
       actions = [:show, :edit, :destroy] if actions == [:all]
-      actions.each do |action|
-        action_link(action.to_sym, prefix)
+
+      self.cell(:actions, :heading => "", cell_html: {class: "actions"}) do |resource|
+        @template.content_tag(:div, class: "dropdown-container") do
+          action_links(actions, prefix, resource).html_safe
+        end
       end
     end
 
@@ -165,24 +168,38 @@ module Tabletastic
       self.cell(:id, :method => :unshift, :heading => "", :cell_html => {:class => html_class}, &block)
     end
 
-    # Dynamically builds links for the action
-    def action_link(action, prefix)
-      html_class = "actions #{action.to_s}_link"
-      block = lambda do |resource|
-        compound_resource = [prefix, resource].compact
-        compound_resource.flatten! if prefix.kind_of?(Array)
-        case action
-        when :show
-          @template.link_to(link_title(action), compound_resource)
-        when :destroy
-          @template.link_to(link_title(action), compound_resource,
-                            :method => :delete, :confirm => confirmation_message)
-        else # edit, other resource GET actions
-          @template.link_to(link_title(action),
-                            @template.polymorphic_path(compound_resource, :action => action))
+    def action_links(actions, prefix, resource)
+      @template.content_for :dropdown_menus do
+
+      end
+      actions_list = ""
+      actions_list += @template.content_tag(:a, "", href: "#", class: "settings")
+      actions_list += @template.content_tag(:div, class: "dropdown") do
+        @template.content_tag(:ul) do
+          buffer = ""
+          actions.each do |action|
+            buffer += @template.content_tag(:li, action_link(action.to_sym, prefix, resource).html_safe)
+          end
+          buffer.html_safe
         end
       end
-      self.cell(action, :heading => "", :cell_html => {:class => html_class}, &block)
+    end
+
+    # Dynamically builds links for the action
+    def action_link(action, prefix, resource)
+      html_class = "actions #{action.to_s}_link"
+      compound_resource = [prefix, resource].compact
+      compound_resource.flatten! if prefix.kind_of?(Array)
+      case action
+      when :show
+        @template.link_to(link_title(action), compound_resource)
+      when :destroy
+        @template.link_to(link_title(action), compound_resource,
+                          :method => :delete, :confirm => confirmation_message)
+      else # edit, other resource GET actions
+        @template.link_to(link_title(action),
+                          @template.polymorphic_path(compound_resource, :action => action))
+      end
     end
 
     protected
