@@ -45,7 +45,7 @@ module Tabletastic
     #   the table
     #
     def data(*args, &block) # :yields: tablebody
-      options = args.extract_options!
+      @options = options = args.extract_options!
       if block_given?
         yield self
       else
@@ -143,7 +143,17 @@ module Tabletastic
         if @current_sortable[0] == field.method
           opts[:class] = ((opts[:class] || "").split << "sorted").join(" ")
         end
-        cells + content_tag(:td, field.cell_data(record), opts)
+        cells << content_tag(:td, opts) do
+          if @options[:actions] && @options[:actions].include?(:edit)
+            compound_resource = [@action_prefix, record].compact
+            compound_resource.flatten! if @action_prefix.kind_of?(Array)
+            @template.link_to(@template.polymorphic_path(compound_resource, :action => :edit)) do
+              field.cell_data(record)
+            end
+          else
+            field.cell_data(record)
+          end
+        end
       end.html_safe
     end
 
