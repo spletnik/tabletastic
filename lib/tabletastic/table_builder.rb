@@ -21,14 +21,31 @@ module Tabletastic
         action = @template.
          polymorphic_path([:mass_action, @action_prefix,
                            @collection.klass.name.underscore.pluralize.to_sym])
-        mass_actions_submit = @template.content_tag(:div,
-          @template.select_tag(:mass_action, @template.
-                               options_for_select([""] + @mass_actions)) +
-           @template.submit_tag("Submit"),
-          :class => "mass_actions_submit"
-        )
-        @template.content_tag(:form, mass_actions_submit + outer_table,
-                              :action => action, :method => :post)
+
+        @actions_content = nil
+        @mass_actions.each do |mass_action|
+          action_content = @template.content_tag(:li) do
+            @template.content_tag(:div) do
+              @template.content_tag(:a, "", href: "#", class: "lovely-link", :"data-target-layout" => "generic", :"data-mass-action" => mass_action.to_s) do
+                mass_action.to_s.humanize
+              end
+            end
+          end
+          @actions_content.nil? ? @actions_content = action_content : @actions_content += action_content
+        end
+
+        mass_icon = @template.content_tag(:div, "", class: "ico-dropdown")
+        cont1 = @template.content_tag(:a, mass_icon + "Mass actions", href: "#", class: "btn btn-dropdown")
+        cont2 = @template.content_tag(:div, "", class: "dropdown", style: "min-width: 119px; display: none;") do
+          @template.content_tag(:ul) do
+            @actions_content
+          end
+        end
+        clearfix = @template.content_tag(:div, "", class: "clearfix")
+
+        mass_actions_submit = @template.content_tag(:div, cont1 + cont2, class: "mass-actions-fixed dropdown-container flL")
+        @template.content_tag(:form, mass_actions_submit + clearfix + outer_table,
+                              :action => action, :method => :post, id: "mass-action-form")
       else
         outer_table
       end
@@ -101,7 +118,9 @@ module Tabletastic
     def head
       content_tag(:thead) do
         content_tag(:tr) do
+          @index = 0
           @table_fields.inject("") do |result,field|
+            @index += 1
             if @sortable_fields.include?(field.method)
 
               sort = if @current_sortable[0] == field.method
@@ -118,7 +137,11 @@ module Tabletastic
               txt = field.heading
               result + content_tag(:th, content_tag(:a, txt, {:href => qs}), opts)
             else
-              result + content_tag(:th, field.heading, field.heading_html)
+              if !@mass_actions.blank? and @index == 1
+                result + content_tag(:th, content_tag(:input, '', :type =>'checkbox', :id => 'check_page'))
+              else
+                result + content_tag(:th, field.heading, field.heading_html)
+              end
             end
           end.html_safe
         end
@@ -144,7 +167,9 @@ module Tabletastic
           opts[:class] = ((opts[:class] || "").split << "sorted").join(" ")
         end
         cells << content_tag(:td, opts) do
-          if @options[:actions] && @options[:actions].include?(:edit)
+          if opts[:class] != 'mass_actions_check_box' && 
+             @options[:actions] && 
+             @options[:actions].include?(:edit)
             compound_resource = [@action_prefix, record].compact
             compound_resource.flatten! if @action_prefix.kind_of?(Array)
             @template.link_to(@template.polymorphic_path(compound_resource, :action => :edit)) do
