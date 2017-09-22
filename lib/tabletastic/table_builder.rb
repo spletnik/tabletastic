@@ -170,12 +170,23 @@ module Tabletastic
           if opts[:class] != 'mass_actions_check_box' && 
              @options[:actions] && 
              @options[:actions].include?(:edit)
+            begin
+              if ((record[field.method].is_a?(Time) || record[field.method].is_a?(Date) || record[field.method].is_a?(DateTime)) rescue false)
+                if opts[:class].present?
+                  opts[:class] += " alR no-wrap"
+                else
+                  opts[:class] = "alR no-wrap"
+                end
+              end
+            rescue Exception => e
+            end
             compound_resource = [@action_prefix, record].compact
             compound_resource.flatten! if @action_prefix.kind_of?(Array)
             @template.link_to(@template.polymorphic_path(compound_resource, :action => :edit)) do
               field.cell_data(record)
             end
           else
+            opts[:class] += " checkbox"
             field.cell_data(record)
           end
         end
@@ -189,7 +200,7 @@ module Tabletastic
       actions = [:show, :edit, :destroy] if actions == [:all]
 
       self.cell(:actions, :heading => "", cell_html: {class: "actions"}) do |resource|
-        @template.content_tag(:div, class: "dropdown-container") do
+        @template.content_tag(:div, class: "dropdown-container flR") do
           action_links(actions, prefix, resource).html_safe
         end
       end
@@ -207,8 +218,11 @@ module Tabletastic
       @template.content_for :dropdown_menus do
 
       end
+
       actions_list = ""
-      actions_list += @template.content_tag(:a, "", href: "#", class: "settings")
+      actions_list += @template.content_tag(:a, "", href: "#", class: "settings") do
+        actions_list = @template.content_tag(:i, "", class: "p-ico p-ico-edit2").html_safe
+      end
       actions_list += @template.content_tag(:div, class: "dropdown") do
         @template.content_tag(:ul) do
           buffer = ""
