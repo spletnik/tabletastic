@@ -186,7 +186,9 @@ module Tabletastic
               field.cell_data(record)
             end
           else
-            opts[:class] += " checkbox"
+            if opts[:class] == 'mass_actions_check_box'
+              opts[:class] += " checkbox"
+            end
             field.cell_data(record)
           end
         end
